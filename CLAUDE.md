@@ -392,6 +392,7 @@ alter table app_{slug}.tablename replica identity full;
 | `mushy-api.js` | `mushyApi.push({...})` | Gateway sang superapp `mini-proxy` cho privileged op (push noti remote). User JWT auth — không cần service_role. Push tự mở rộng recipients sang follower ws nếu có grant (superapp mig 049). |
 | `members.js` | `listMembers(workspaceId)`, `getProfiles(userIds)` | Batch lookup workspace members + full_name/avatar_url qua `dbPublic`. RLS workspace-mate đã mở (superapp mig 004). KHÔNG dùng hash-color fallback nữa. |
 | `sharing.js` | `generateShareCode()`, `redeemShareCode()`, `listShareGrants()`, `revokeShareGrant()`, `listAccessibleScopes()`, `useActiveScope()`, `useAccessibleScopes()`, `getActiveScope()`, `setActiveScope()`, `resetActiveScope()` | Cross-workspace data sharing (superapp mig 049). `useActiveScope()` trả ws đang thao tác (default ctx.workspaceId; đổi qua `<ScopeSwitcher />`). Dùng `scope.workspaceId` cho mọi query thay `ctx.workspaceId`. Xem section 3.5. |
+| `analytics.js` | `track(event, props)`, `trackScreen(name, props)`, `initAnalytics()`, `refreshIdentity()`, `resetAnalytics()` | PostHog wrapper. Auto-init từ `main.jsx`, auto-identify userId, auto-group workspace, auto-gắn `app_slug`/`workspace_id`/`role` vào mọi event. DEV mode tự skip (set `VITE_POSTHOG_DEBUG=1` nếu cần test local). Xem section 12 — event taxonomy chuẩn. |
 | `theme.js` | `colors`, `radii`, `fonts`, `space`, `fontSize` | Inline style nếu cần |
 
 **Component sẵn có** (`src/components/`):
@@ -476,7 +477,8 @@ miniapp-{slug}/
 │       ├── queue.js
 │       ├── mushy-api.js      ← gateway sang superapp mini-proxy (push, …)
 │       ├── members.js        ← batch lookup workspace members + profiles
-│       └── sharing.js        ← cross-workspace data sharing + active scope
+│       ├── sharing.js        ← cross-workspace data sharing + active scope
+│       └── analytics.js      ← PostHog wrapper (auto-init từ main.jsx)
 ├── api/                      ← Vercel Serverless Functions
 │   ├── _verify.js            ← verify JWT, KHÔNG expose endpoint
 │   └── ai-proxy.js           ← ví dụ: proxy AI request server-side
@@ -723,6 +725,7 @@ Khi user nói:
 - **"Lưu danh bạ / chọn danh bạ"** → `bridge.saveContact({ name, phone, email? })` → `{ saved, id }`. `bridge.pickContact()` → `{ name, phone }` (system picker, không cần quyền đọc full danh bạ).
 - **"Thêm vào Lịch"** (deadline, sinh nhật, sự kiện đội) → `bridge.addCalendarEvent({ title, startDate, endDate?, notes?, location?, allDay? })`. `startDate/endDate` = ISO string / epoch ms. Mở UI hệ thống, user xác nhận → `{ action, saved }`.
 - **"Hiện avatar / tên member"** (voter, comment author, mention, presence…) → `listMembers(ctx.workspaceId)` từ `src/lib/members.js` → `[{ user_id, role, full_name, avatar_url, work_phone }, ...]`. Hoặc `getProfiles([uid1, uid2])` cho subset đã biết user_ids. KHÔNG dùng hash-color + chữ cái UUID — RLS workspace-mate đã cho phép real lookup (superapp migration 004). `work_phone` có thể null (user chưa khai) — dùng cho tap-to-call qua `bridge.tel(member.work_phone)`.
+- **"Tracking / analytics user action"** → `track('event_name', { ...props })` từ `src/lib/analytics.js`. Auto-gắn sẵn `app_slug`/`workspace_id`/`role`/`user_dev_mode` — chỉ truyền property RIÊNG event này cần. Đổi screen → `trackScreen('home')`. Đừng tự gọi `posthog.capture()` — wrapper xử lý DEV skip + identify + group rồi. Xem section 12 cho event taxonomy chuẩn.
 
 Memory bên Mushy chính (đọc nếu cần):
 - `project_environments.md` — kiến trúc dev/prod, schema-per-env, dev_mode
@@ -748,7 +751,7 @@ Mini-app downstream được **fork tại 1 thời điểm** từ template này 
 
 | Path | Lý do |
 |---|---|
-| `src/lib/*` | Bridge, supabase, storage, realtime, queue, mushy-api, members, theme — toàn bộ |
+| `src/lib/*` | Bridge, supabase, storage, realtime, queue, mushy-api, members, analytics, theme — toàn bộ |
 | `src/components/Dialog.jsx` | Design system primitive |
 | `src/components/Select.jsx` | Design system primitive (replace native `<select>`) |
 | `src/components/ScopeSwitcher.jsx` | Cross-workspace sharing UI primitive |
@@ -863,3 +866,59 @@ Cần fix shared infra → báo team Mushy canonical (anhdqvn) qua issue / chat.
 - ❌ Sửa `src/lib/*` để fix bug local → patch lost khi sync. **Bug ở shared layer phải fix ở Mushy canonical + sync về.**
 - ❌ Merge thẳng vào main bỏ qua test — sync có thể đụng RLS / bridge breaking → smoke test bắt buộc
 - ❌ Xóa `scripts/sync-template.sh` ở downstream — script tự exclude khỏi sync để bạn upgrade được lần sau
+
+---
+
+## 12. Analytics — PostHog (event taxonomy chuẩn)
+
+Mọi mini-app Mushy dùng **chung 1 PostHog project** (EU Cloud). Wrapper `src/lib/analytics.js` auto-init từ `main.jsx` — không phải setup tay. Auto-skip ở DEV local (`npm run dev`) để không bẩn data.
+
+### 12.1 Đã có sẵn — không cần bắn tay
+
+- `app_opened` — bắn ngay khi mini-app mount (auto từ `initAnalytics()`).
+- `error` — bắn khi `window.error` hoặc `unhandledrejection` fire (auto).
+- `$pageleave` — bắn khi user đóng tab/WebView (PostHog auto, đo time-on-page).
+
+Shell tự bắn `shell_opened` / `mini_app_opened` / `mini_app_closed` (kèm `session_ms`) bên ngoài — mini-app không lo.
+
+### 12.2 Bắn tay khi user làm action
+
+```js
+import { track, trackScreen } from './lib/analytics.js';
+
+// Đổi screen / route trong SPA
+trackScreen('detail', { record_id: id });
+
+// User action có ý nghĩa (CRUD, submit, vote, ...)
+track('note_created', { length: text.length });
+track('vote_submitted', { question_id: qid, choice: 'A' });
+track('export_clicked', { format: 'csv' });
+```
+
+**Naming convention**:
+- snake_case: `note_created`, KHÔNG `noteCreated` / `Note Created`
+- verb past tense: `_created`, `_submitted`, `_completed`, `_failed`, `_clicked`, `_opened`, `_closed`
+- KHÔNG prefix `app_slug` vào tên event — đã có ở property tự gắn.
+
+### 12.3 Event chuẩn (gợi ý — chọn cái phù hợp với mini-app)
+
+| Event | Khi nào bắn | Properties nên có |
+|---|---|---|
+| `screen_view` | Mỗi lần đổi route/screen (dùng `trackScreen()`) | `screen_name`, optional `record_id` |
+| `action_success` | Action có CTA chính hoàn thành (vd "Lưu", "Gửi") | `action` (vd `'save_note'`), optional `duration_ms` |
+| `action_failed` | Action lỗi (network, validation, RLS reject) | `action`, `error_code`, `error_message` |
+| `feature_used` | User dùng feature phụ (filter, search, export…) | `feature` (vd `'filter_by_date'`) |
+| `external_link_opened` | User tap link external (qua `bridge.openUrl`) | `domain` (KHÔNG full URL, privacy) |
+| `share_initiated` | User tap share button | `target` (vd `'system_sheet'`) |
+| `notification_tap_inside` | User tap deep-link noti landing vào mini-app | `kind`, `record_id` |
+
+### 12.4 KHÔNG bắn (anti-pattern)
+
+- ❌ **PII trong properties**: email, phone, full content note. Property nên là metadata (length, count, status), không phải nội dung.
+- ❌ **Bắn mỗi render**: `track()` trong `useEffect` không deps, hoặc trong render body → flood quota. Chỉ bắn khi user thực sự action.
+- ❌ **Tự gọi `posthog.capture()`**: bypass wrapper → mất super props (`app_slug`, `role`…), mất DEV skip, mất identify. Luôn dùng `track()` / `trackScreen()`.
+- ❌ **Một event nhiều ý nghĩa**: `user_action` với prop `type='note_created'` → khó query. Tách: `note_created`, `note_deleted`, mỗi cái event riêng.
+
+### 12.5 Xem dashboard
+
+PostHog Cloud EU: https://eu.posthog.com → project "Mushy". Breakdown theo `app_slug` để xem per-app, theo group `workspace` để xem per-workspace.
