@@ -537,7 +537,11 @@ npm run dev:token       # login lại + update VITE_DEV_TOKEN
 Workspace/user/role không đổi nên chỉ cần refresh token.
 
 ### 8.1.3 Không có account?
-Cài app **Mushy** (TestFlight iOS / Play Internal Android) → mở app → **Đăng ký** (email → OTP qua mail). Mushy đã bỏ password (2026-05-12) — chỉ cần email cá nhân, login mọi nơi bằng OTP.
+Cài app **Mushy** (search "Mushy" trên store cũng ra):
+- **Android**: [Play Store](https://play.google.com/store/apps/details?id=com.mushyapp.shell)
+- **iOS**: [App Store](https://apps.apple.com/vn/app/id6768073102)
+
+Mở app → **Đăng ký** (email → OTP qua mail). Mushy đã bỏ password (2026-05-12) — chỉ cần email cá nhân, login mọi nơi bằng OTP.
 
 ### 8.1.4 ⚠️ BẮT BUỘC tự tạo 1 workspace của riêng mình TRƯỚC khi register mini-app
 
