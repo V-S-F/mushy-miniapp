@@ -605,7 +605,8 @@ Sau khi đăng ký account Mushy (8.1.3) hoặc login bằng account có sẵn:
 
 6. Mở Admin Portal (https://admin.mini.mushy-app.com) → login → catalog → **+ Đăng ký app mới**:
    - Slug: `{slug}` (uniqueness check live)
-   - Tên + mô tả + icon
+   - Tên + mô tả
+   - **Icon**: bấm nút "Chọn icon" → picker hiện 1357 Ionicons (Outline / Sharp / Filled), gõ tìm kiếm theo tên (vd `restaurant`, `calendar`, `cash`). Design v3.0 dùng **Outline**. DB lưu format `ion:<name>` (vd `ion:restaurant-outline`). Bỏ trống → shell fallback theo slug map. Cũng accept URL nếu paste vào DB tay (logo riêng PNG/SVG).
    - **Production URL**: paste `https://mushy-miniapp-{slug}.vercel.app`
    - **Preview URL**: paste `https://mushy-miniapp-{slug}-git-dev.vercel.app`
    - Visibility: **Private** (default — chỉ owner thấy) hoặc **Public** (mọi ws thấy + ws owner enable)

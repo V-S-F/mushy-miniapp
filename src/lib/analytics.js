@@ -74,43 +74,54 @@ export function initAnalytics() {
     try { ctx = getContext(); } catch { ctx = {}; }
 
     const posthog = await loadPosthog();
+
+    // Bootstrap distinctID + super props NGAY khi init — không chờ `loaded` callback.
+    // Lý do (bug fix 2026-05-30): `loaded` chạy async sau khi PostHog hoàn tất
+    // network/storage handshake. Trước đây register super props trong `loaded`
+    // → mọi event fire TRƯỚC khi loaded xong (vd `app_opened` từ setTimeout(0))
+    // không có super props (`app_slug`, `workspace_id`, …) → breakdown PostHog
+    // theo `app_slug` chỉ thấy "shell" vì mini-app events thiếu prop này.
     posthog.init(POSTHOG_KEY, {
       api_host: POSTHOG_HOST,
-      // Lite config — mini-app KHÔNG dùng autocapture / session recording mặc định.
-      // Có thể bật từ PostHog dashboard sau (Project Settings → Recording) không cần code change.
       autocapture: false,
       capture_pageview: false,        // bắn screen_view tay (SPA, history thường không trigger)
       capture_pageleave: true,        // tự bắn $pageleave khi unload → tính time-on-page
       disable_session_recording: true,
       person_profiles: 'identified_only', // KHÔNG tạo profile cho anonymous → tiết kiệm MAU quota
-      loaded: (ph) => {
-        // Sau khi script load xong: identify + register super props.
-        if (ctx.userId) {
-          ph.identify(ctx.userId, {
-            email: ctx.email || undefined,
-            workspace_id: ctx.workspaceId || undefined,
-            role: ctx.role || undefined,
-          });
-        }
-        if (ctx.workspaceId) {
-          ph.group('workspace', ctx.workspaceId, {
-            name: ctx.workspaceName || ctx.workspaceSlug || undefined,
-            slug: ctx.workspaceSlug || undefined,
-          });
-        }
-        _superProps = buildSuperProps(ctx);
-        ph.register(_superProps);
-      },
+      // bootstrap: gắn distinctID + isIdentifiedID NGAY tại init → mọi event sau
+      // điểm này (kể cả khi PostHog chưa load xong storage) tự có distinctID đúng
+      // = userId Supabase, không bị anonymous → identified merge race.
+      bootstrap: ctx.userId ? {
+        distinctID: ctx.userId,
+        isIdentifiedID: true,
+      } : undefined,
     });
 
-    // Auto-bắn app_opened ngay sau init. Bắn sau loaded callback fire (next tick).
-    setTimeout(() => {
-      try { posthog.capture('app_opened'); } catch { /* ignore */ }
-    }, 0);
+    // Register super props + identify NGAY (synchronous). PostHog queue method
+    // calls internally cho tới khi script ready — gọi trước `loaded` an toàn.
+    _superProps = buildSuperProps(ctx);
+    posthog.register(_superProps);
+
+    if (ctx.userId) {
+      posthog.identify(ctx.userId, {
+        email: ctx.email || undefined,
+        workspace_id: ctx.workspaceId || undefined,
+        role: ctx.role || undefined,
+      });
+    }
+    if (ctx.workspaceId) {
+      posthog.group('workspace', ctx.workspaceId, {
+        name: ctx.workspaceName || ctx.workspaceSlug || undefined,
+        slug: ctx.workspaceSlug || undefined,
+      });
+    }
+
+    // app_opened SAU khi super props + identify đã register → event đầu tiên
+    // mang đủ app_slug/workspace_id/role để breakdown PostHog hoạt động.
+    try { posthog.capture('app_opened'); } catch { /* ignore */ }
 
     // Auto-bắn error khi window throw. KHÔNG over-capture stack-trace (privacy);
-    // chỉ message + filename + line để debug rough. Mini-app cần verbose hơn → tự
-    // gọi trackEvent('error', {...}) tay.
+    // chỉ message + filename + line để debug rough.
     if (typeof window !== 'undefined') {
       window.addEventListener('error', (e) => {
         try {
