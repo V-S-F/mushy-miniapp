@@ -11,48 +11,107 @@
  * ===================================================================== */
 
 :root {
+  /* =====================================================================
+   * Mushy design system — synced với superapp v3.0 (2026-05-31).
+   *
+   * Backward compat: legacy tokens (--r-button pill 999, --muted #6B6770…)
+   * KHÔNG xoá. Mini-app dev có thể giữ pill button cũ HOẶC opt-in v3:
+   *   .mushy-btn → pill (legacy default)
+   *   .mushy-btn--v3 → rounded rect r14 (v3)
+   *
+   * Token mới v3 add suffix `-v3` hoặc tên mới để rõ. Display font Plus
+   * Jakarta Sans cho heading lớn / hero. Body vẫn Be Vietnam Pro.
+   * ===================================================================== */
+
   /* === Brand colors === */
   --brand: #E63946;            /* đỏ cap nấm — primary */
   --brand-pressed: #C92A39;
   --brand-soft: #FFE4E7;
+  --brand-wash: rgba(230, 57, 70, 0.07);  /* v3 — app icon container bg */
   --pink: #FF6B81;
   --pink-soft: #FFB3C1;
 
-  /* === Neutrals === */
+  /* === Text — v3 dùng 3 shade fg / fg-secondary / muted === */
   --ink: #0F0F12;              /* heading, đậm nhất */
   --text: #1A1A1F;
-  --muted: #6B6770;
-  /* Placeholder mờ ~50% so với muted — đủ thấy nhưng KHÔNG nhầm với
-     nội dung thật (2026-05-22). */
+  --fg-secondary: #3C3C43;     /* v3 — secondary (subtitle, label) */
+  --muted: #6B6770;            /* legacy caption */
+  --muted-v3: #8E8E93;         /* v3 muted iOS palette */
+  /* Placeholder mờ ~50% so với muted (2026-05-22). */
   --placeholder: rgba(107, 103, 112, 0.5);
   --hairline: rgba(15, 15, 18, 0.08);
+  --hairline-strong: rgba(15, 15, 18, 0.10);  /* v3 — input border default */
 
   /* === Surfaces === */
   --bg: #FFF7F8;               /* nền KHÔNG pure white */
   --surface: #FFFFFF;
   --surface-muted: #FBEEF0;
 
-  /* === Status === */
-  --success: #10B981;
-  --warn: #F59E0B;
-  --danger: #E63946;
+  /* === Status — v3 dùng iOS palette ===
+   * Legacy --success/--warn = green/amber Tailwind. V3 = iOS native colors. */
+  --success: #10B981;          /* legacy */
+  --success-v3: #34C759;       /* v3 — iOS green */
+  --warn: #F59E0B;             /* legacy */
+  --warn-v3: #FF9500;          /* v3 — iOS orange */
+  --danger: #E63946;           /* legacy = brand */
+  --danger-v3: #FF3B30;        /* v3 — khác brand, dùng error toast */
+  --info-v3: #007AFF;          /* v3 — iOS blue */
 
-  /* === Radii === */
-  /* Giảm bo góc (sếp Huy 2026-05-19): app thiên về info → bo mạnh làm
-     mắt "hướng tâm", giảm scan. Card 28→20, list item → 14. Pill giữ 999. */
-  --r-card: 20px;
-  --r-button: 999px;           /* pill */
-  --r-input: 999px;            /* pill */
+  /* === Radii ===
+   * Legacy: pill button (999) + card 20. Vẫn dùng cho mini-app cũ.
+   * V3: rounded rect button (14), card 16, hero 20, app icon 14. Mini-app
+   * mới nên dùng v3 (qua .mushy-btn--v3, --r-card-v3, …) để consistent với
+   * superapp shell. */
+  --r-card: 20px;              /* legacy */
+  --r-card-v3: 16px;           /* v3 */
+  --r-button: 999px;           /* legacy pill */
+  --r-button-v3: 14px;         /* v3 rounded rect */
+  --r-input: 999px;            /* legacy pill */
+  --r-input-v3: 12px;          /* v3 rounded */
   --r-tile: 14px;
-  --r-list: 14px;              /* list item / info row */
+  --r-list: 14px;
+  --r-hero: 20px;              /* v3 — hero banner */
+  --r-modal: 24px;             /* v3 — modal corner */
+  --r-app-icon: 14px;          /* v3 — app icon container */
+  --r-pill: 999px;             /* badge/avatar pill */
 
-  /* === Shadows (clay) === */
+  /* === Shadows ===
+   * Legacy clay (heavier highlight inset). V3 cleaner (no inset). */
   --shadow-card: 0 8px 24px rgba(15, 15, 18, 0.06), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  --shadow-card-v3: 0 2px 12px rgba(15, 15, 18, 0.06);
+  --shadow-card-elevated: 0 8px 32px rgba(15, 15, 18, 0.10);
   --shadow-button: 0 6px 16px rgba(201, 42, 57, 0.32);
+  --shadow-button-v3: 0 4px 12px rgba(201, 42, 57, 0.30);
+  --shadow-press: 0 1px 6px rgba(15, 15, 18, 0.04);
 
-  /* === Fonts === */
+  /* === Fonts ===
+   * V3 thêm display Plus Jakarta Sans (heading lớn, hero, stat numbers).
+   * Body giữ Be Vietnam Pro. */
   --font-body: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Be Vietnam Pro', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* === Type scale (v3) ===
+   * Đồng bộ với superapp lib/theme.js typeScale + design-tokens.json. */
+  --fs-xs: 11px;    --lh-xs: 14px;
+  --fs-sm: 13px;    --lh-sm: 18px;
+  --fs-base: 15px;  --lh-base: 22px;
+  --fs-md: 17px;    --lh-md: 24px;
+  --fs-lg: 20px;    --lh-lg: 26px;
+  --fs-xl: 24px;    --lh-xl: 30px;
+  --fs-xxl: 32px;   --lh-xxl: 38px;
+  --fs-hero: 38px;  --lh-hero: 44px;
+
+  /* === Space scale (v3) === */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
 
   color-scheme: light;
 }
@@ -234,6 +293,142 @@ textarea.mushy-input:focus {
   white-space: pre;
   margin: 0;
   border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* =====================================================================
+ * v3 utility classes — opt-in cho mini-app muốn theo superapp v3.0.
+ * Legacy classes (.mushy-btn, .mushy-card) GIỮ NGUYÊN cho backward compat.
+ * ===================================================================== */
+
+/* Hero banner gradient red — design v3 */
+.mushy-hero {
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-pressed) 100%);
+  border-radius: var(--r-hero);
+  padding: 20px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(201, 42, 57, 0.32);
+}
+.mushy-hero-eyebrow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 4px;
+}
+.mushy-hero-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+.mushy-hero-sub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* App-icon container — design v3 (58×58 r14 brandWash + border red) */
+.mushy-app-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: var(--r-app-icon);
+  background: var(--brand-wash);
+  border: 1px solid rgba(230, 57, 70, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand);
+  flex-shrink: 0;
+}
+.mushy-app-icon ion-icon { font-size: 26px; color: var(--brand); }
+
+/* Card v3 (cleaner shadow, no inset highlight) */
+.mushy-card--v3 {
+  background: var(--surface);
+  border-radius: var(--r-card-v3);
+  padding: 18px;
+  box-shadow: var(--shadow-card-v3);
+  border: 1px solid var(--hairline);
+}
+
+/* Button v3 (rounded rect r14, KHÔNG pill) */
+.mushy-btn--v3 {
+  border-radius: var(--r-button-v3);
+  padding: 14px 22px;
+}
+.mushy-btn--v3.mushy-btn--primary {
+  background: var(--brand);
+  box-shadow: var(--shadow-button-v3);
+}
+
+/* Input v3 (rounded r12) */
+.mushy-input--v3 {
+  border-radius: var(--r-input-v3);
+  padding: 12px 14px;
+}
+
+/* Section label uppercase — design v3 */
+.mushy-section-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--muted-v3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 20px 16px 8px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Info row — icon left + label/value middle + chevron right */
+.mushy-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.mushy-info-row:last-child { border-bottom: 0; }
+.mushy-info-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--brand-wash);
+  border: 1px solid rgba(230, 57, 70, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand);
+  flex-shrink: 0;
+}
+.mushy-info-body { flex: 1; min-width: 0; }
+.mushy-info-label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--fg-secondary);
+  margin-bottom: 1px;
+}
+.mushy-info-value {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--muted-v3);
+}
+
+/* Display heading helper */
+.mushy-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.6px;
 }
 
 /* === Animations === */

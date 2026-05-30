@@ -420,30 +420,72 @@ Esc = cancel, Enter = confirm. CSS có sẵn trong `theme.css`.
 
 ---
 
-## 6. Design system (default — KHÔNG ép buộc, có thể override)
+## 6. Design system (synced với superapp v3.0, 2026-05-31)
 
 `src/lib/theme.css` auto-import qua `main.jsx`. Mọi mini-app có sẵn brand Mushy.
 
+**Backward compat**: legacy tokens (pill button 999, `--muted #6B6770`, `.mushy-card` clay shadow) KHÔNG xoá. Mini-app cũ vẫn chạy. Mini-app mới nên opt-in v3 token để consistent với superapp shell v3.0.
+
 ### Tokens (CSS variables)
-- `--brand` `#E63946`, `--bg` `#FFF7F8`, `--ink` `#0F0F12`
-- `--r-card` `28px`, `--r-button` `999px` (pill), `--r-input` `999px`
-- `--shadow-card`, `--shadow-button`
-- xem `src/lib/theme.css` cho full list
+
+**Brand + surface (đồng nhất)**:
+- `--brand` `#E63946`, `--brand-pressed` `#C92A39`, `--brand-soft` `#FFE4E7`
+- `--brand-wash` `rgba(230,57,70,0.07)` — v3 (app icon container bg)
+- `--bg` `#FFF7F8`, `--surface` `#FFFFFF`, `--surface-muted` `#FBEEF0`
+
+**Text**:
+- `--ink` `#0F0F12` (heading), `--text` `#1A1A1F` (body)
+- `--fg-secondary` `#3C3C43` — v3 (subtitle/label)
+- `--muted` `#6B6770` (legacy) / `--muted-v3` `#8E8E93` (iOS palette)
+- `--hairline` `rgba(15,15,18,0.08)` / `--hairline-strong` `rgba(15,15,18,0.10)` — v3
+
+**Radii** — opt-in v3 suffix:
+- Legacy: `--r-card` 20px, `--r-button` 999px (pill), `--r-input` 999px (pill)
+- V3: `--r-card-v3` 16px, `--r-button-v3` 14px (rounded rect), `--r-input-v3` 12px, `--r-hero` 20px, `--r-app-icon` 14px, `--r-modal` 24px
+
+**Fonts**:
+- `--font-body` `'Be Vietnam Pro'` (giữ nguyên — body, label, paragraph)
+- `--font-display` `'Plus Jakarta Sans'` — V3 MỚI (heading lớn, hero, stat numbers, section label uppercase)
+- Index.html đã preload cả 2 từ Google Fonts.
+
+**Status (iOS palette v3)**:
+- Legacy `--success` #10B981, `--warn` #F59E0B, `--danger` = brand red
+- V3 `--success-v3` #34C759, `--warn-v3` #FF9500, `--danger-v3` #FF3B30 (khác brand — error toast), `--info-v3` #007AFF
+
+**Type scale + space scale (v3)**:
+- `--fs-xs..xxl` + matching `--lh-*` (11→32 size, 14→38 line-height)
+- `--space-1..9` (4 → 56)
 
 ### Utility classes
-- **Layout**: `.mushy-page` (max 720px center)
-- **Card**: `.mushy-card` (clay rounded + shadow + highlight top)
-- **Section**: `.mushy-section-title`, `.mushy-section-sub`
-- **Button**: `.mushy-btn` + variant `--primary` / `--ghost` / `--dashed` / `--danger`. `--block` = full width.
-- **Input**: `.mushy-input` + `.mushy-label`. `--error` cho error state. textarea auto bo `16px`.
-- **Status pill**: `.mushy-status` + `--ok` / `--warn` / `--err` + child `.mushy-status-dot`
-- **Code**: `.mushy-code` (dark JSON block)
-- **Spinner**: `.mushy-spinner`
-- **Modal/Dialog**: `.modal-scrim`, `.modal-card`, `.dialog-icon`, `.dialog-title`, `.dialog-body`, `.form-actions`
 
-JS tokens: `import { colors, radii, fonts } from './lib/theme.js'` cho dynamic style.
+**Legacy (giữ nguyên)**:
+- Layout: `.mushy-page` (max 720px center)
+- Card: `.mushy-card` (clay rounded + shadow + highlight top)
+- Section: `.mushy-section-title`, `.mushy-section-sub`
+- Button: `.mushy-btn` + variant `--primary` / `--ghost` / `--dashed` / `--danger`. `--block` = full width.
+- Input: `.mushy-input` + `.mushy-label` (pill). `--error` cho error state. textarea auto bo `16px`.
+- Status pill: `.mushy-status` + `--ok` / `--warn` / `--err`
+- Code/Spinner/Modal-Dialog: như cũ
 
-**Override tự do**: đè class CSS riêng hoặc thay tokens trong `:root` của `App.css`. Mục tiêu là consistent với superapp shell, không ép.
+**V3 mới (opt-in)**:
+- `.mushy-card--v3` — card cleaner shadow, border-1px hairline, KHÔNG inset highlight
+- `.mushy-btn--v3` — rounded rect r14 (kết hợp `--primary` để filled)
+- `.mushy-input--v3` — input rounded r12
+- `.mushy-hero` + `.mushy-hero-eyebrow` + `.mushy-hero-title` + `.mushy-hero-sub` — gradient red hero banner (eyebrow uppercase + title display + sub max 2 lines)
+- `.mushy-app-icon` — 58×58 r14 brandWash bg + border red, render Ionicons web component (`<ion-icon>`) bên trong
+- `.mushy-section-label` — uppercase 11/700 letterSpacing 0.8 padding 20/16/8/16 (khoảng trên/2 bên/dưới/2 bên), `numberOfLines={1}`
+- `.mushy-info-row` + `.mushy-info-icon` + `.mushy-info-body` + `.mushy-info-label` + `.mushy-info-value` — info row pattern (icon container brandWash + label/value middle)
+- `.mushy-display` — helper class apply font display + weight 800 + letterSpacing -0.6
+
+### JS tokens
+
+```js
+import { colors, radii, fonts, shadow, typeScale, space } from './lib/theme.js';
+// V3 tokens: colors.brandWash, colors.fgSecondary, colors.dangerV3,
+//            radii.cardV3, radii.buttonV3, fonts.display, typeScale.lg
+```
+
+**Override tự do**: đè class CSS riêng hoặc thay tokens trong `:root` của `App.css`. Mục tiêu là consistent với superapp shell v3.0, không ép. Mini-app mới khuyến nghị dùng v3 tokens; mini-app cũ migrate khi rảnh.
 
 ---
 
